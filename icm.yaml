@@ -1,0 +1,23 @@
+name: web-application-feedback
+kind: umbrella
+packageRoot: workflow
+entrypoint: CLAUDE.md
+
+requiredPaths:
+  - CONTEXT.md
+  - stages/01_orient/CONTEXT.md
+  - stages/02_converse/CONTEXT.md
+  - stages/03_route/CONTEXT.md
+
+mutablePaths:
+  - feedback/**
+  - output.html
+
+exclude:
+  - "**/.git/**"
+  - "**/__pycache__/**"
+  - "**/node_modules/**"
+
+integrations:
+  - type: github
+    keyName: github-key1

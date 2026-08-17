@@ -1,9 +1,10 @@
-# Setting Up GitHub Access for an ICM Workflow
+# Setting Up GitHub Access for an Umbrella ICM
 
-This guide is a reusable starting point for people building their own ICM
-workflows on the EdubaWare platform. Package the provided `configure-git.sh`
-with the workflow. Claude runs it when a session starts; the person creating
-the workflow does not need to write or manually run a bootstrap script.
+This guide describes the GitHub integration used by this umbrella ICM on the
+EdubaWare platform. The publishable package includes
+`workflow/.how-to-setup/configure-git.sh`. Claude runs it when a session starts;
+the person creating the umbrella does not need to write or manually run a
+bootstrap script.
 
 ## Security Note
 
@@ -43,16 +44,18 @@ repository permissions, and token expiration.
    - Auth Header Prefix: `Bearer ` (with trailing space)
    - Secret: Paste the GitHub PAT from Step 1
 
-## Step 3: Prepare Your Workflow
+## Step 3: Prepare the Umbrella
 
-1. Create or clone the repository that will contain your ICM workflow.
-2. Define the workflow's identity, routing, stage contracts, reference inputs,
+1. Create or clone the repository that will contain your umbrella ICM.
+2. Define the umbrella's identity, routing, stage contracts, reference inputs,
    working artifacts, review gates, and outputs in its own context files.
-3. Include `.how-to-setup/configure-git.sh` in the workflow. This provided
-   script configures the platform credential helper and clones or refreshes the
+3. Include `.how-to-setup/configure-git.sh` in the packaged umbrella root. This
+   repository stores it at `workflow/.how-to-setup/configure-git.sh`. The script
+   configures the platform credential helper and clones or refreshes the
    required repository. Do not replace it with a workflow-specific script.
 4. Put the repository-specific configuration and execution requirement in the
-   workflow's root `CLAUDE.md`. For example:
+   umbrella's runtime `CLAUDE.md`. In this repository that is
+   `workflow/CLAUDE.md`. For example:
 
    ```bash
    export ICM_GITHUB_OWNER="<github-owner>"
@@ -73,20 +76,16 @@ repository permissions, and token expiration.
    fails. The domain workflow must not continue with missing or stale context.
 6. Grant the narrowest repository permissions that support the workflow's
    declared inputs and outputs.
-7. Commit and push the workflow definition, `CLAUDE.md`, and the provided
-   bootstrap script to the workflow repository.
+7. Commit and push the umbrella definition, runtime `CLAUDE.md`, and the
+   provided bootstrap script to the repository.
 
 ## Step 4: Create ICM Template
 
-1. Create archive of your repository:
+1. Create an archive from the `workflow/` package root. Do not download or
+   package the entire repository:
 
-   **Option A: Using GitHub UI (recommended)**
-   - Go to your repository on GitHub
-   - Click "Code" → "Download ZIP"
-
-   **Option B: Using git command**
    ```bash
-   git archive --format=zip --output=../my-icm-template.zip HEAD
+   git archive --format=zip --output=web-application-feedback.zip HEAD:workflow
    ```
 
 2. Upload ZIP to EdubaWare as ICM template
@@ -114,7 +113,7 @@ repository permissions, and token expiration.
 - If the PAT expired: generate a new token and update the External API Key
   secret.
 - If the script reports a missing variable: add the corresponding
-  `ICM_GITHUB_*` export to the workflow's root `CLAUDE.md`.
+   `ICM_GITHUB_*` export to the umbrella's runtime `CLAUDE.md`.
 - If the agent cannot find context: verify that the workflow's root router and
   stage contracts use paths relative to `ICM_GITHUB_CHECKOUT_DIR` in the
   packaged template layout.

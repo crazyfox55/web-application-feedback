@@ -1,39 +1,37 @@
-# Feedback Workbench
+# Web Application Feedback ICM Repository
 
-This workspace turns a conversation with a user into traceable feedback and,
-when warranted, a proposed change to the EdubaWareVision Atlas.
+This repository develops and packages the Feedback Workbench umbrella ICM.
+The runnable ICM is rooted at `workflow/`; its `CLAUDE.md` governs sessions
+created from the package and must not be treated as repository-development
+instructions.
 
-Read `CONTEXT.md` to route the work. Follow the numbered stage contracts in
-order. Do not skip the user review gates between conversation and promotion.
+## Development Boundaries
 
-## Platform Bootstrap
+- Keep all files required at ICM runtime under `workflow/`.
+- Keep completed development and test feedback under `records/`; do not package
+  it into new ICM versions.
+- Keep human setup documentation and screenshots under `docs/`.
+- Preserve the user review gates in the numbered stage contracts.
+- Keep `workflow/.how-to-setup/configure-git.sh` aligned with the Eduba platform
+  integration contract.
+- Keep `icm.yaml` synchronized with the package layout.
 
-Before reading Atlas context or starting the workflow, configure and verify the
-nested EdubaWareVision checkout:
+## Validation
 
-```bash
-export ICM_GITHUB_OWNER="crazyfox55"
-export ICM_GITHUB_REPOSITORY="EdubaWareVision"
-export ICM_GITHUB_BRANCH="main"
-export ICM_GITHUB_CHECKOUT_DIR="EdubaWareVision"
-export ICM_GITHUB_API_KEY_NAME="github-key1"
-bash .how-to-setup/configure-git.sh
-git -C EdubaWareVision status --short --branch
-git -C EdubaWareVision remote -v
-git -C EdubaWareVision pull --ff-only origin main
-```
+After changing the umbrella:
 
-Stop and report the failure if any bootstrap or verification command fails. Do
-not begin feedback intake with missing or stale Atlas context.
+1. Verify required paths in `icm.yaml` exist beneath `workflow/`.
+2. Build the package with its contents at the archive root:
 
-## Boundaries
+   ```bash
+  git archive --format=zip --output=web-application-feedback.zip HEAD:workflow
+   ```
 
-- `EdubaWareVision/` is the product Atlas. It is a workflow input for product
-  context and the output destination for an approved durable artifact. It is
-  nested in this workspace for access, but it remains a separate repository.
-- `feedback/` stores the user's account and the Workbench's interpretation.
-- Durable product knowledge belongs in the Atlas only after the user confirms
-  that the feedback record represents what they meant and approves the proposed
-  artifact choice.
-- Repository bootstrap is a platform prerequisite executed by the agent before
-  the domain stages. It is not itself a feedback stage.
+3. Inspect the archive before publishing. It must not contain a `workflow/`
+   wrapper, `records/`, `docs/`, or repository-level development files.
+
+`workflow/generate_report.py` is a runtime helper for the platform agent. It
+summarizes feedback accumulated inside an umbrella session into `output.html`;
+it is not a repository-development validation step.
+
+Do not publish a new live ICM version unless the user explicitly requests it.

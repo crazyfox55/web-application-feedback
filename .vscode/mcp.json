@@ -1,0 +1,18 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "edubaware-organization-id",
+      "description": "EdubaWare organization ID"
+    }
+  ],
+  "servers": {
+    "edubaware-mcp-dev": {
+      "type": "http",
+      "url": "http://localhost:5610/o/${input:edubaware-organization-id}/mcp",
+      "oauth": {
+        "clientId": "e8fc22ee-e07d-484d-a5f1-6c963b575d52"
+      }
+    }
+  }
+}
