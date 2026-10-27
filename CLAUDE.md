@@ -14,7 +14,14 @@ instructions.
 - Preserve the user review gates in the numbered stage contracts.
 - Keep `workflow/.how-to-setup/configure-git.sh` aligned with the Eduba platform
   integration contract.
-- Keep `icm.yaml` synchronized with the package layout.
+- Keep `icm.yaml` synchronized with the package layout. EdubaWare does not read
+  it; it is the local packaging contract.
+- Do not edit the vendored skill under `workflow/.claude/skills/icm-architect/`;
+  update it by re-copying from upstream and refreshing `PROVENANCE.md`.
+- Keep `workflow/edubaware/` facts verified against EdubaWare source, with code
+  references available on request.
+- Do not create top-level `workflow/inputs/`, `setup/`, or `references/`
+  folders unless you want EdubaWare to add upload slots for them.
 
 ## Validation
 
@@ -24,11 +31,13 @@ After changing the umbrella:
 2. Build the package with its contents at the archive root:
 
    ```bash
-  git archive --format=zip --output=web-application-feedback.zip HEAD:workflow
+   git archive --format=zip --output=web-application-feedback.zip HEAD:workflow
    ```
 
 3. Inspect the archive before publishing. It must not contain a `workflow/`
    wrapper, `records/`, `docs/`, or repository-level development files.
+   EdubaWare also rejects archives over 2,000 files and paths that differ only
+   by case.
 
 `workflow/generate_report.py` is a runtime helper for the platform agent. It
 summarizes feedback accumulated inside an umbrella session into `output.html`;
