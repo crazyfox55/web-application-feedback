@@ -19,6 +19,11 @@ Evidence such as logs, screenshots, or a team reproduction is not required
 for rules 3 and 4. When it is missing or unverified, promote anyway with the
 needs-validation banner from the stage contract.
 
+Every promoted or updated Atlas file names its source as the workbench URL
+plus the record file name in plain text (`../../../CLAUDE.md` **Source
+Reference in Atlas Files**). The Atlas is a separate repository: a relative
+link to `feedback/` is broken there, and record content is never copied in.
+
 Change `VISION.md`, a file under `architecture/`, or a rationale record
 (`templates/rationale.md`) only to record a decision explicitly made by
 someone with the authority to make it.

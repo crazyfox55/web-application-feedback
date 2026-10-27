@@ -22,10 +22,12 @@ in the same turn.
    `references/artifact-routing.md`. They decide; do not offer the user a
    choice or defer the decision.
 3. Write the artifact under `../../EdubaWareVision/` in this turn. Apply the
-   matching Atlas template or preserve the schema of an existing record. Link
-   it to the Workbench feedback record. To promote a feature draft, move it
-   from `features/drafts/` to `features/open/` and replace the draft banner;
-   to promote an issue, write `bugs/open/<short-slug>.md` from
+   matching Atlas template or preserve the schema of an existing record. Name
+   its source with the workbench URL and record file name as plain text, as
+   `../../CLAUDE.md` **Source Reference in Atlas Files** requires; never a
+   relative link to `feedback/`, and never copy the record into the Atlas.
+   To promote a feature draft, move it from `features/drafts/` to
+   `features/open/` and replace the draft banner; to promote an issue, write `bugs/open/<short-slug>.md` from
    `templates/bug.md`. Start a promoted artifact with the needs-validation
    banner unless its behavior or need is already verified or accepted. When no
    promotion rule matches, set the draft banner status to the outcome.
@@ -42,10 +44,14 @@ in the same turn.
 Needs-validation banner:
 
 ```markdown
-> **Needs validation.** Promoted from Workbench feedback
-> `feedback/<folder>/NNN-short-slug.md` on YYYY-MM-DD. Not yet verified:
+> **Needs validation.** Promoted from Workbench feedback on YYYY-MM-DD
+> (Workbench https://chat.eduba.io/workbenches/<workbench-id>/chats, record
+> `feedback/<folder>/NNN-short-slug.md`). Not yet verified:
 > <what is missing, e.g. logs, team reproduction, product decision>.
 ```
+
+Write the **Source feedback** line under the summary in the same plain-text
+form, replacing any relative `../feedback/` link carried over from a draft.
 
 Do not change multiple Atlas artifact types to make the feedback appear more
 complete. Record follow-up work instead.

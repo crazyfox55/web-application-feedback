@@ -50,9 +50,13 @@ Draft banner:
 
 ```markdown
 > **Draft: rough estimate, not an accepted feature.** Captured from Workbench
-> feedback before triage. Status: unconfirmed. Source: Workbench record
-> `feedback/feature-requests/NNN-short-slug.md`.
+> feedback before triage. Status: unconfirmed. Source: Workbench
+> https://chat.eduba.io/workbenches/<workbench-id>/chats, record
+> `feedback/feature-requests/NNN-short-slug.md` (not in this repository).
 ```
+
+Fill `<workbench-id>` as `../../CLAUDE.md` **Source Reference in Atlas
+Files** describes. Name the record as plain text; never link to `feedback/`.
 
 Keep quotations or close paraphrases under **User account**. Put agent analysis
 under **Workbench interpretation**. Never rewrite an inference as something the

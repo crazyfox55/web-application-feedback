@@ -82,6 +82,25 @@ Atlas entries (EdubaWareVision): features/drafts/slug.md (folder features/drafts
 State what happened. Do not hedge ("no Atlas change for now", "tell me if
 you'd rather promote"); the stage rules decide, and the reply reports.
 
+## Source Reference in Atlas Files
+
+An Atlas file names its Workbench source as plain text, never as a relative
+link: `feedback/` is not in the Atlas repository, so `../feedback/...` links
+break on GitHub. Write:
+
+```markdown
+Source feedback: Workbench https://chat.eduba.io/workbenches/<workbench-id>/chats,
+record `feedback/issue-reports/NNN-short-slug.md` (Workbench record, not in this repository).
+```
+
+Get `<workbench-id>` with `jq -r .sessionId .platform/session.json`; if that
+fails, use `basename "$PWD"` (the workspace folder is named after the same
+id). If neither gives a UUID, write `Workbench (id unavailable)` and keep the
+record name. Print only that field: `session.json` also holds a session token
+and storage URLs. The host is fixed: the sandbox is given only the API host,
+not the web app's. Never copy feedback record content into the Atlas beyond
+what its template asks for.
+
 ## Boundaries
 
 - `EdubaWareVision/` is the product Atlas. It is a workflow input for product
