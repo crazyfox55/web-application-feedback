@@ -1,15 +1,15 @@
-﻿{
-    "inputs":  [
-                   {
-                       "type":  "promptString",
-                       "id":  "edubaware-organization-id",
-                       "description":  "EdubaWare organization ID"
-                   }
-               ],
-    "servers":  {
-                    "edubaware-mcp-dev":  {
-                                              "type":  "http",
-                                              "url":  "http://localhost:5610/o/${input:edubaware-organization-id}/mcp"
-                                          }
-                }
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "edubaware-organization-id",
+      "description": "EdubaWare organization ID"
+    }
+  ],
+  "servers": {
+    "edubaware-mcp-dev": {
+      "type": "http",
+      "url": "https://mcp.eduba.io/o/${input:edubaware-organization-id}/mcp"
+    }
+  }
 }
