@@ -18,9 +18,17 @@
 #   then reapplies and publishes them on top of the fresh remote. A pending
 #   change whose remote file has also changed is kept, not applied, and
 #   reported as a conflict.
-# - A rejected push is fetched, rebased, and retried. It is never forced. If
-#   the push still fails, the commit's files stay in the workbench and the next
-#   sync publishes them.
+# - A rejected push is fetched, rebased, and retried. It is never forced. An
+#   authorization failure (for example GitHub's 403 "Write access to repository
+#   not granted") is not retried. Either way the commit's files are saved to
+#   pending and the next sync publishes them.
+# - Every sync checks write access with an authenticated `git push --dry-run`
+#   (GitHub authorizes git-receive-pack before advertising refs) and records
+#   the result in `${ICM_GITHUB_STATE_DIR}/write-access`.
+# - Exit codes: 0 done; 75 UNPUBLISHED (transient, retried by the next sync);
+#   76 CONFLICT (a saved change needs a manual merge); 77 NO_WRITE_ACCESS (the
+#   API key cannot push; changes stay pending). A sync that exits 75-77 still
+#   leaves the checkout ready to read.
 # - The proxy forwards git smart HTTP to github.com and adds the External API
 #   Key's token server-side (EdubaWare.ApiService/Icm/GitSmartHttpProxy.cs), so
 #   the token never enters the sandbox. Git authenticates to the proxy with
@@ -58,6 +66,12 @@ esac
 PENDING="${STATE}/pending"
 MANIFEST="${PENDING}/manifest"   # lines: put|del <TAB> base blob or - <TAB> path
 
+EXIT_UNPUBLISHED=75
+EXIT_CONFLICT=76
+EXIT_NO_WRITE_ACCESS=77
+STATUS=0   # worst outcome so far; a higher code takes precedence
+AUTH_FAILURE='Write access to repository not granted|Permission to .* denied|returned error: 40[13]|Authentication failed|could not read (Username|Password)|Invalid username or password'
+
 # The helper reads the token when git asks for it, so the token is never
 # written to disk or to a command line.
 CREDENTIAL_HELPER='!f() { echo "username=token"; echo "password=${EDUBAWARE_SESSION_TOKEN}"; }; f'
@@ -66,8 +80,41 @@ git_remote() {
   git -c credential.helper= -c "credential.helper=${CREDENTIAL_HELPER}" "$@"
 }
 
+# Runs a remote git command, prints its complete output, and keeps it in
+# GIT_OUTPUT for classification.
+remote_git() {
+  local rc=0
+  GIT_OUTPUT="$(git_remote "$@" 2>&1)" || rc=$?
+  [ -z "${GIT_OUTPUT}" ] || printf '%s\n' "${GIT_OUTPUT}" >&2
+  return "${rc}"
+}
+
+is_auth_failure() {
+  grep -qiE "${AUTH_FAILURE}" <<<"${GIT_OUTPUT}"
+}
+
+raise_status() {
+  [ "$1" -le "${STATUS}" ] || STATUS="$1"
+}
+
 g() {
   git -C "${ICM_GITHUB_CHECKOUT_DIR}" -c core.quotePath=false "$@"
+}
+
+# Persists the latest write-access result: ok, denied, or unknown.
+record_write_access() {
+  mkdir -p "${STATE}"
+  {
+    echo "status=$1"
+    echo "checked=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "key=${ICM_GITHUB_API_KEY_NAME}"
+    echo "repository=${ICM_GITHUB_OWNER}/${ICM_GITHUB_REPOSITORY}@${ICM_GITHUB_BRANCH}"
+    [ -z "${2:-}" ] || printf 'error:\n%s\n' "$2"
+  } >"${STATE}/write-access"
+}
+
+no_write_access_message() {
+  echo "NO_WRITE_ACCESS: API key '${ICM_GITHUB_API_KEY_NAME}' cannot push to ${ICM_GITHUB_OWNER}/${ICM_GITHUB_REPOSITORY}; git's error is printed above." >&2
 }
 
 lock_checkout() {
@@ -132,14 +179,25 @@ capture_local_changes() {
   [ -n "${changed}" ] || return 0
 
   if [ ! -f "${STATE}/synced" ]; then
-    # Without a record, local and stale copies look alike: keep them, unpublished.
+    # Without a record, a file the remote lacks can only be a local addition,
+    # so it is published. A changed remote file may be a local edit or a stale
+    # copy: keep it aside, unpublished, for a manual merge.
     recovered="${STATE}/recovered/$(date -u +%Y%m%dT%H%M%SZ)"
     while IFS= read -r path; do
       [ -f "${ICM_GITHUB_CHECKOUT_DIR}/${path}" ] || continue
+      if [ "$(remote_blob "${path}")" = - ]; then
+        save_pending put - "${path}"
+        continue
+      fi
       mkdir -p "$(dirname "${recovered}/${path}")"
       cp -p "${ICM_GITHUB_CHECKOUT_DIR}/${path}" "${recovered}/${path}"
+      echo "  ${path} (saved copy: ${recovered}/${path})" >&2
+      raise_status "${EXIT_CONFLICT}"
     done <<<"${changed}"
-    echo "WARNING: no sync record; copied files that differ from the remote to ${recovered} without publishing them." >&2
+    if [ -d "${recovered}" ]; then
+      echo "CONFLICT: no sync record; the files above differ from the remote and were not published." >&2
+      echo "Merge what is yours into the checkout by hand, then publish it." >&2
+    fi
     return 0
   fi
 
@@ -156,26 +214,69 @@ capture_local_changes() {
 }
 
 # Pushes HEAD, rebasing local commits onto the remote after a rejection.
-# Sets PUSHED_FROM to the remote commit the pushed commits sit on.
+# Sets PUSHED_FROM to the remote commit the pushed commits sit on. On failure
+# returns the exit code that describes it; authorization failures fail fast.
 push_with_retry() {
   local attempt=1
   PUSHED_FROM="$(g rev-parse "refs/remotes/origin/${ICM_GITHUB_BRANCH}")"
-  until git_remote -C "${ICM_GITHUB_CHECKOUT_DIR}" push --quiet origin "HEAD:${ICM_GITHUB_BRANCH}"; do
+  until remote_git -C "${ICM_GITHUB_CHECKOUT_DIR}" push --quiet origin "HEAD:${ICM_GITHUB_BRANCH}"; do
+    if is_auth_failure; then
+      record_write_access denied "${GIT_OUTPUT}"
+      no_write_access_message
+      return "${EXIT_NO_WRITE_ACCESS}"
+    fi
     if [ "${attempt}" -ge "${ICM_GITHUB_PUSH_ATTEMPTS}" ]; then
-      return 1
+      return "${EXIT_UNPUBLISHED}"
     fi
     attempt=$((attempt + 1))
     echo "Push failed; fetching and rebasing before attempt ${attempt} of ${ICM_GITHUB_PUSH_ATTEMPTS}." >&2
     sleep "$((attempt - 1))"
-    git_remote -C "${ICM_GITHUB_CHECKOUT_DIR}" fetch --quiet origin "${ICM_GITHUB_BRANCH}" || continue
+    remote_git -C "${ICM_GITHUB_CHECKOUT_DIR}" fetch --quiet origin "${ICM_GITHUB_BRANCH}" || continue
     if ! g rebase --quiet --autostash "refs/remotes/origin/${ICM_GITHUB_BRANCH}"; then
       g rebase --abort || true
       echo "Rebase conflicts with the remote." >&2
-      return 1
+      return "${EXIT_UNPUBLISHED}"
     fi
     PUSHED_FROM="$(g rev-parse "refs/remotes/origin/${ICM_GITHUB_BRANCH}")"
     record_synced "${PUSHED_FROM}"
   done
+  record_write_access ok
+}
+
+# After a failed push: saves the unpushed files to pending, where they survive
+# the loss of `.git`, and states exactly what is unpublished.
+report_unpushed() {
+  local code="$1" label=UNPUBLISHED path base
+  [ "${code}" -ne "${EXIT_NO_WRITE_ACCESS}" ] || label=NO_WRITE_ACCESS
+  while IFS= read -r path; do
+    base="$(synced_blob "${path}")"
+    if [ -f "${ICM_GITHUB_CHECKOUT_DIR}/${path}" ]; then
+      save_pending put "${base:--}" "${path}"
+    elif [ -n "${base}" ]; then
+      save_pending del "${base}" "${path}"
+    fi
+  done < <(g diff --name-only --no-renames "${PUSHED_FROM}" HEAD)
+  echo "FAILED: ${label} (exit ${code}). Nothing below reached ${ICM_GITHUB_OWNER}/${ICM_GITHUB_REPOSITORY}." >&2
+  echo "Unpushed local commit (the hash does not survive this turn):" >&2
+  g log --format='  %h %s' "${PUSHED_FROM}..HEAD" >&2
+  echo "Files, saved in ${PENDING} and retried by the next bootstrap:" >&2
+  g diff --name-status --no-renames "${PUSHED_FROM}" HEAD | sed 's/^/  /' >&2
+  raise_status "${code}"
+}
+
+# Tests write authorization without changing the remote.
+check_write_access() {
+  if remote_git -C "${ICM_GITHUB_CHECKOUT_DIR}" push --dry-run --quiet origin "HEAD:${ICM_GITHUB_BRANCH}"; then
+    record_write_access ok
+    echo "Write access: OK (key ${ICM_GITHUB_API_KEY_NAME})"
+  elif is_auth_failure; then
+    record_write_access denied "${GIT_OUTPUT}"
+    no_write_access_message
+    raise_status "${EXIT_NO_WRITE_ACCESS}"
+  else
+    record_write_access unknown "${GIT_OUTPUT}"
+    echo "WARNING: the write-access check failed for a reason other than authorization (output above); publishing will still be attempted." >&2
+  fi
 }
 
 after_push() {
@@ -219,11 +320,19 @@ replay_pending() {
     echo "CONFLICT: these unpublished changes were not applied because the remote file changed too." >&2
     echo "Merge each saved copy into the checkout by hand, then publish it:" >&2
     printf '%s' "${conflicts}" >&2
+    raise_status "${EXIT_CONFLICT}"
   fi
   [ -n "${applied}" ] || return 0
 
+  if [ "${STATUS}" -eq "${EXIT_NO_WRITE_ACCESS}" ]; then
+    g reset --quiet
+    echo "Not publishing saved changes without write access; they stay pending and are in the checkout:" >&2
+    printf '%s' "${applied}" >&2
+    return 0
+  fi
+
   {
-    if [ "$(wc -l <"${STATE}/messages" 2>/dev/null || echo 0)" -eq 1 ]; then
+    if [ -f "${STATE}/messages" ] && [ "$(wc -l <"${STATE}/messages")" -eq 1 ]; then
       cat "${STATE}/messages"
     elif [ -s "${STATE}/messages" ]; then
       echo "Publish Atlas changes saved after failed pushes"
@@ -236,13 +345,15 @@ replay_pending() {
   g commit --quiet -F "${STATE}/commit-message"
   rm -f "${STATE}/commit-message"
 
-  if push_with_retry; then
-    after_push
+  local code=0
+  push_with_retry || code=$?
+  if [ "${code}" -eq 0 ]; then
     echo "Published saved changes:"
+    g log -1 --format='  %h %s'
     printf '%s' "${applied}"
+    after_push
   else
-    echo "WARNING: saved changes are applied in the checkout but still unpublished; the next sync retries them:" >&2
-    printf '%s' "${applied}" >&2
+    report_unpushed "${code}"
   fi
 }
 
@@ -251,8 +362,11 @@ sync_checkout() {
   trap 'rm -rf "${SYNC_TMP}"' EXIT
   local tmp="${SYNC_TMP}"
 
-  git_remote clone --quiet --depth 1 --single-branch --branch "${ICM_GITHUB_BRANCH}" \
-    "${REPOSITORY_REMOTE}" "${tmp}/repo"
+  if ! remote_git clone --quiet --depth 1 --single-branch --branch "${ICM_GITHUB_BRANCH}" \
+    "${REPOSITORY_REMOTE}" "${tmp}/repo"; then
+    echo "FAILED: could not fetch ${ICM_GITHUB_OWNER}/${ICM_GITHUB_REPOSITORY}@${ICM_GITHUB_BRANCH} with API key '${ICM_GITHUB_API_KEY_NAME}'; git's error is printed above." >&2
+    exit 1
+  fi
 
   if [ -d "${ICM_GITHUB_CHECKOUT_DIR}" ] && [ -n "$(ls -A "${ICM_GITHUB_CHECKOUT_DIR}")" ]; then
     rm -rf "${ICM_GITHUB_CHECKOUT_DIR}/.git"
@@ -276,6 +390,7 @@ sync_checkout() {
   g config user.name "${ICM_GIT_USER_NAME:-ICM Agent}"
   record_synced HEAD
   rm -f "${STATE}/refreshing"
+  check_write_access
 
   if [ -s "${MANIFEST}" ]; then
     cp "${MANIFEST}" "${MANIFEST}.replay"
@@ -285,6 +400,21 @@ sync_checkout() {
 
   echo "${ICM_GITHUB_OWNER}/${ICM_GITHUB_REPOSITORY}@${ICM_GITHUB_BRANCH} ready at ${ICM_GITHUB_CHECKOUT_DIR}"
   g log -1 --format='%h %cs %s'
+  if [ -s "${MANIFEST}" ]; then
+    echo "Unpublished Atlas changes still pending:"
+    awk -F'\t' '{ print "  " $1 " " $3 }' "${MANIFEST}"
+  fi
+  exit_with_status
+}
+
+exit_with_status() {
+  case "${STATUS}" in
+    0) echo "STATUS: OK" ;;
+    "${EXIT_UNPUBLISHED}") echo "STATUS: FAILED UNPUBLISHED (exit ${STATUS})" ;;
+    "${EXIT_CONFLICT}") echo "STATUS: CONFLICT (exit ${STATUS})" ;;
+    "${EXIT_NO_WRITE_ACCESS}") echo "STATUS: FAILED NO_WRITE_ACCESS (exit ${STATUS}, key ${ICM_GITHUB_API_KEY_NAME})" ;;
+  esac
+  exit "${STATUS}"
 }
 
 publish_checkout() {
@@ -311,15 +441,17 @@ publish_checkout() {
     return 0
   fi
 
-  if push_with_retry; then
-    after_push
+  local code=0
+  push_with_retry || code=$?
+  if [ "${code}" -eq 0 ]; then
     echo "Published to ${ICM_GITHUB_OWNER}/${ICM_GITHUB_REPOSITORY}@${ICM_GITHUB_BRANCH}:"
-    g log -1 --format='%h %s'
+    g log --format='  %h %s' "${PUSHED_FROM}..HEAD"
+    g diff --name-status --no-renames "${PUSHED_FROM}" HEAD | sed 's/^/  /'
+    after_push
   else
-    echo "UNPUBLISHED: the change is saved in the workbench files and will be published by the" >&2
-    echo "next sync (rerun the bootstrap now or at the start of the next turn). Do not delete it." >&2
-    exit 75
+    report_unpushed "${code}"
   fi
+  exit_with_status
 }
 
 lock_checkout
