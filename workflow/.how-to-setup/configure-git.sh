@@ -17,7 +17,9 @@
 #   `${ICM_GITHUB_STATE_DIR}/pending/` (outside the checkout, so it persists),
 #   then reapplies and publishes them on top of the fresh remote. A pending
 #   change whose remote file has also changed is kept, not applied, and
-#   reported as a conflict.
+#   reported as a conflict. With no record yet (the first run after a
+#   template whose refresh kept no state), a file the remote never had is
+#   published, and any other difference is kept aside under `recovered/`.
 # - A rejected push is fetched, rebased, and retried. It is never forced. An
 #   authorization failure (for example GitHub's 403 "Write access to repository
 #   not granted") is not retried. Either way the commit's files are saved to
@@ -179,13 +181,22 @@ capture_local_changes() {
   [ -n "${changed}" ] || return 0
 
   if [ ! -f "${STATE}/synced" ]; then
-    # Without a record, a file the remote lacks can only be a local addition,
-    # so it is published. A changed remote file may be a local edit or a stale
-    # copy: keep it aside, unpublished, for a manual merge.
+    # Without a record (for example the first run after a template whose
+    # refresh kept no state), a file the remote never had is a local addition,
+    # so it is published. A file the remote deleted, or a changed remote file,
+    # may be a local edit or a stale copy: keep it aside, unpublished, for a
+    # manual merge. The remote's history (commits and trees, no file contents)
+    # tells the two apart; if it cannot be fetched, additions are published.
+    local history=1
+    if ! remote_git -C "${ICM_GITHUB_CHECKOUT_DIR}" fetch --quiet --unshallow --filter=blob:none origin "${ICM_GITHUB_BRANCH}"; then
+      history=0
+      echo "WARNING: could not fetch remote history; files the remote lacks are treated as local additions." >&2
+    fi
     recovered="${STATE}/recovered/$(date -u +%Y%m%dT%H%M%SZ)"
     while IFS= read -r path; do
       [ -f "${ICM_GITHUB_CHECKOUT_DIR}/${path}" ] || continue
-      if [ "$(remote_blob "${path}")" = - ]; then
+      if [ "$(remote_blob "${path}")" = - ] && { [ "${history}" -eq 0 ] ||
+        [ -z "$(g log -1 --format=%h HEAD -- "${path}")" ]; }; then
         save_pending put - "${path}"
         continue
       fi
@@ -195,7 +206,7 @@ capture_local_changes() {
       raise_status "${EXIT_CONFLICT}"
     done <<<"${changed}"
     if [ -d "${recovered}" ]; then
-      echo "CONFLICT: no sync record; the files above differ from the remote and were not published." >&2
+      echo "CONFLICT: no sync record; the files above differ from the remote (changed, or deleted there) and were not published." >&2
       echo "Merge what is yours into the checkout by hand, then publish it." >&2
     fi
     return 0
