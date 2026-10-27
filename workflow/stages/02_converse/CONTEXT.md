@@ -38,7 +38,8 @@ as soon as it is usable, before the conversation is finished.
    feature template, starting with the draft banner below, then publish that
    path as described in `../../CLAUDE.md`. Update an existing draft for the
    same need instead of adding another. Republish whenever the draft improves.
-   Record the draft path under **Atlas draft** in the feedback record.
+   Record the draft path and publish result in the feedback record, and
+   report both as `../../CLAUDE.md` **Reporting** requires.
 7. Summarize the feedback in plain language, including the desired outcome and
    unresolved questions. Ask the user to confirm or correct the summary.
 8. After confirmation, set the record's status to `confirmed-feedback`, update
