@@ -2,9 +2,9 @@
 
 ## Job
 
-Decide which single durable Atlas artifact, if any, should change because of the
-confirmed feedback record, then write and publish that artifact in the same
-turn.
+Apply the promotion rules in `references/artifact-routing.md` to the
+confirmed feedback record, then write and publish the selected Atlas artifact
+in the same turn.
 
 ## Inputs
 
@@ -16,28 +16,36 @@ turn.
 
 ## Process
 
-1. Verify the feedback against relevant Atlas vision, architecture, features,
-   bugs, and rationale. Do not equate user confirmation with product acceptance
-   or technical verification.
-2. Use `references/artifact-routing.md` to select one primary outcome.
-3. Prefer updating an existing Atlas artifact over creating a duplicate.
-4. Write the artifact under `../../EdubaWareVision/` in this turn. Apply the
+1. Check the feedback against relevant Atlas vision, architecture, features,
+   bugs, and rationale, and look for an existing record that owns it.
+2. Select the outcome with the promotion rules in
+   `references/artifact-routing.md`. They decide; do not offer the user a
+   choice or defer the decision.
+3. Write the artifact under `../../EdubaWareVision/` in this turn. Apply the
    matching Atlas template or preserve the schema of an existing record. Link
-   the Atlas artifact to the Workbench feedback record. To promote a draft,
-   move it from `features/drafts/` to `features/open/` and remove the draft
-   banner. When no durable change is justified, keep the draft and set its
-   banner status to the outcome (`feedback-only`, `needs-validation`,
-   `duplicate` of a linked record, or `declined`).
-5. Publish immediately, without asking the user: run
+   it to the Workbench feedback record. To promote a feature draft, move it
+   from `features/drafts/` to `features/open/` and replace the draft banner;
+   to promote an issue, write `bugs/open/<short-slug>.md` from
+   `templates/bug.md`. Start a promoted artifact with the needs-validation
+   banner unless its behavior or need is already verified or accepted. When no
+   promotion rule matches, set the draft banner status to the outcome.
+4. Publish immediately, without asking: run
    `bash .how-to-setup/configure-git.sh publish "<message>" <path>...` from
    the workspace root in the same Bash command as the bootstrap `export`
-   lines. Include both paths of a move. If the script reports `UNPUBLISHED`,
-   the change is kept and published by the next bootstrap: record the status
-   as `pending-publish`.
-6. Tell the user what you published and why, or that no durable change is
-   justified yet and why.
-7. Add an **Atlas routing** section to the feedback record with the outcome,
-   link, status, and unresolved validation work.
+   lines. Include both paths of a move.
+5. Report as `../../CLAUDE.md` requires: what was promoted and why, or which
+   promotion criterion is missing; then the Workbench/Atlas block with the
+   commit hash or the `FAILED` reason.
+6. Add an **Atlas routing** section to the feedback record with the outcome,
+   Atlas path, commit hash or `pending-publish`, and validation still needed.
+
+Needs-validation banner:
+
+```markdown
+> **Needs validation.** Promoted from Workbench feedback
+> `feedback/<folder>/NNN-short-slug.md` on YYYY-MM-DD. Not yet verified:
+> <what is missing, e.g. logs, team reproduction, product decision>.
+```
 
 Do not change multiple Atlas artifact types to make the feedback appear more
 complete. Record follow-up work instead.
@@ -51,8 +59,8 @@ do not ask for a second confirmation before writing or publishing.
 
 One of:
 
-- one new or updated final artifact in `../../EdubaWareVision/` plus a backlink
-   from the feedback record;
-- an updated feedback record marked `feedback-only`, `needs-validation`,
-  `duplicate`, or `declined`, with no durable Atlas change beyond updating
-  the status of its draft.
+- one new, promoted, or updated artifact in `../../EdubaWareVision/` plus a
+  backlink from the feedback record;
+- an updated feedback record marked `feedback-only`, `duplicate`, or
+  `declined`, with no durable Atlas change beyond updating the status of its
+  draft.

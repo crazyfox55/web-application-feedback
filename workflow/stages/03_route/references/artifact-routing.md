@@ -1,28 +1,24 @@
 # Atlas Artifact Routing
 
-Choose the narrowest artifact that preserves the durable conclusion supported
-by the feedback. Feedback is evidence; it is not itself a product decision.
+Feedback is evidence, not a product decision. The Atlas still captures it
+early, labelled for what it is, so it is not lost.
 
-| Supported conclusion | Primary Atlas artifact |
-| --- | --- |
-| A verified behavior differs from documented or accepted behavior | `bugs/open/` using `templates/bug.md` |
-| An accepted user need requires a new or changed capability | `features/open/` using `templates/feature.md` |
-| A durable decision, constraint, or trade-off needs explanation | A rationale record using `templates/rationale.md` |
-| Product purpose or enduring direction has deliberately changed | `VISION.md` |
-| Verified system structure or security posture has changed | The relevant file under `architecture/` |
-| An existing Atlas record already covers the conclusion | Update that existing record with new evidence |
-| A feature need is plausible but not yet confirmed or triaged | `features/drafts/` (stage 2 publishes it; it is not a durable record) |
-| The report is unverified, undecided, unclear, declined, or purely evidentiary | No Atlas change; retain the Workbench record |
+## Promotion Rules
 
-## Selection Tests
+Apply the first rule that matches the confirmed feedback record:
 
-Before proposing an Atlas change, answer:
+| # | Condition | Outcome |
+| --- | --- | --- |
+| 1 | An existing Atlas record already owns the need or behavior | Update that record with the new evidence; mark the draft `duplicate` of it |
+| 2 | Someone with authority to decide has declined it | Draft status `declined`, with who and why |
+| 3 | Issue report with a reproducible description: what the user did or the circumstances, what happened, and what they expected | `bugs/open/` using `templates/bug.md` |
+| 4 | Feature request whose need and desired outcome are recognisable | Promote the draft to `features/open/` using `templates/feature.md` |
+| 5 | None of the above (including general feedback) | No durable change; draft status `feedback-only`, naming the missing criterion |
 
-1. What durable claim is supported beyond the fact that one user said it?
-2. Is the claim verified, accepted, or explicitly decided by someone with the
-   authority to make that decision?
-3. Does an existing Atlas artifact already own this claim?
-4. What would become misleading if the Atlas were changed now?
+Evidence such as logs, screenshots, or a team reproduction is not required
+for rules 3 and 4. When it is missing or unverified, promote anyway with the
+needs-validation banner from the stage contract.
 
-When answers are incomplete, select a feedback-only status and state what must
-be learned or decided next.
+Change `VISION.md`, a file under `architecture/`, or a rationale record
+(`templates/rationale.md`) only to record a decision explicitly made by
+someone with the authority to make it.
