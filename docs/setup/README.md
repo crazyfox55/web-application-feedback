@@ -1,16 +1,15 @@
 # Setting Up GitHub Access for an Umbrella ICM
 
-This guide describes the GitHub integration used by this umbrella ICM on the
-EdubaWare platform. The publishable package includes
-`workflow/.how-to-setup/configure-git.sh`. Claude runs it when a session starts;
-the person creating the umbrella does not need to write or manually run a
-bootstrap script.
+This guide describes the GitHub integration this umbrella ICM uses on
+EdubaWare. The package includes `workflow/.how-to-setup/configure-git.sh`, and
+the runtime `CLAUDE.md` tells Claude when to run it. Nobody runs it by hand.
 
 ## Security Note
 
 Alpha testing: people within your organization may convince an agent to act
-maliciously toward a connected repository. Use narrow access controls,
-repository permissions, and token expiration.
+maliciously toward a connected repository. Every ICM deployment in the
+organization can use the key, so use narrow repository access and token
+expiration.
 
 ## Prerequisites
 
@@ -21,99 +20,93 @@ repository permissions, and token expiration.
 ## Step 1: Create GitHub Personal Access Token (PAT)
 
 1. Go to https://github.com/settings/personal-access-tokens/new
-2. Click "Generate new token (fine-grained)"
-3. Configure token:
-    - Repository access: select "Only select repositories" and choose only the
-       repositories required by your workflow
+2. Create a fine-grained token:
+   - Repository access: "Only select repositories", only those the workflow needs
    - Expiration: 90 days (or as needed)
    - Repository permissions:
-       - Contents: Read-only for reference inputs, or read and write when the
-          workflow produces artifacts in the repository
+     - Contents: Read-only for reference inputs; Read and write when the
+       workflow publishes artifacts (this umbrella does, in stage 3)
      - Metadata: Read-only
-     - Pull requests: Read and write (if needed)
-4. Generate token and **save it securely** (you won't see it again)
+3. Save the token securely; GitHub shows it once.
 
 ## Step 2: Register External API Key in EdubaWare
 
-1. Log into EdubaWare as organization admin
-2. Navigate to External API Keys settings
-3. Create new key:
-   - Name: a descriptive name such as `github-reponame`
-   - Target Base URL: `https://api.github.com`
-   - Auth Header Name: `Authorization`
-   - Auth Header Prefix: `Bearer ` (with trailing space)
-   - Secret: Paste the GitHub PAT from Step 1
+In **Organization Admin → ICM → External APIs → Add ICM External API**
+(`/Organizations/Admin/{OrgId}/Icm/ExternalApis/Create`):
 
-## Step 3: Prepare the Umbrella
+- Proxy Name: `github-key1` (lowercase letters, digits, dashes; must match
+  `ICM_GITHUB_API_KEY_NAME` in `workflow/CLAUDE.md`)
+- API Key Secret: the PAT from Step 1
+- Target Base URL: `https://api.github.com`
+- Auth Header Name: `Authorization`
+- Auth Header Prefix: `Bearer ` (with trailing space)
 
-1. Create or clone the repository that will contain your umbrella ICM.
-2. Define the umbrella's identity, routing, stage contracts, reference inputs,
-   working artifacts, review gates, and outputs in its own context files.
-3. Include `.how-to-setup/configure-git.sh` in the packaged umbrella root. This
-   repository stores it at `workflow/.how-to-setup/configure-git.sh`. The script
-   configures the platform credential helper and clones or refreshes the
-   required repository. Do not replace it with a workflow-specific script.
-4. Put the repository-specific configuration and execution requirement in the
-   umbrella's runtime `CLAUDE.md`. In this repository that is
-   `workflow/CLAUDE.md`. For example:
+![External API key form](ExternalAPIKeyConfig.png)
 
-   ```bash
-   export ICM_GITHUB_OWNER="<github-owner>"
-   export ICM_GITHUB_REPOSITORY="<repository-name>"
-   export ICM_GITHUB_BRANCH="main"
-   export ICM_GITHUB_CHECKOUT_DIR="<local-checkout-path>"
-   export ICM_GITHUB_API_KEY_NAME="<external-api-key-name>"
-   bash .how-to-setup/configure-git.sh
-   git -C "${ICM_GITHUB_CHECKOUT_DIR}" status --short --branch
-   git -C "${ICM_GITHUB_CHECKOUT_DIR}" remote -v
-   git -C "${ICM_GITHUB_CHECKOUT_DIR}" pull --ff-only origin "${ICM_GITHUB_BRANCH}"
-   ```
+Keys saved here have ICM proxy access, and EdubaWare grants them to every
+non-archived deployment in the organization automatically. There is no
+per-template key setting.
 
-   These values are workflow configuration, not secrets. The API key name must
-   match the External API Key registered in Step 2. The platform supplies
-   `EDUBAWARE_SESSION_TOKEN` and `EDUBAWARE_EXTERNAL_API_PROXY_URL` at runtime.
-5. Tell Claude to stop and report an error when bootstrap or Git verification
-   fails. The domain workflow must not continue with missing or stale context.
-6. Grant the narrowest repository permissions that support the workflow's
-   declared inputs and outputs.
-7. Commit and push the umbrella definition, runtime `CLAUDE.md`, and the
-   provided bootstrap script to the repository.
+Git traffic through the proxy goes to `github.com` and authenticates with the
+PAT server-side. The sandbox only holds a session token that works only while a
+turn is running.
 
-## Step 4: Create ICM Template
+## Step 3: Configure the Umbrella
 
-1. Create an archive from the `workflow/` package root. Do not download or
-   package the entire repository:
+Set the repository values in the runtime `CLAUDE.md` (`workflow/CLAUDE.md`):
+
+```bash
+export ICM_GITHUB_OWNER="<github-owner>"
+export ICM_GITHUB_REPOSITORY="<repository-name>"
+export ICM_GITHUB_BRANCH="main"
+export ICM_GITHUB_CHECKOUT_DIR="<local-checkout-path>"
+export ICM_GITHUB_API_KEY_NAME="<proxy-name>"
+bash .how-to-setup/configure-git.sh
+```
+
+These values are configuration, not secrets. Keep the shared script; do not
+replace it with a workflow-specific one. It runs as many times as needed:
+workbench files persist between turns but `.git` does not, so each run
+shallow-clones to a temporary folder and resets the checkout to the remote
+branch. Approved changes are published in the same turn with
+`configure-git.sh publish "<message>" <path>...`.
+
+## Step 4: Upload the ICM Template
+
+1. Build the archive from the `workflow/` package root only:
 
    ```bash
    git archive --format=zip --output=web-application-feedback.zip HEAD:workflow
    ```
 
-2. Upload ZIP to EdubaWare as ICM template
-3. Configure the template to use the External API Key created in Step 2.
+   Nothing else may sit at the zip root beside the package files (for example
+   `icm.yaml` or `__MACOSX/`), or EdubaWare will not find the entry file at the
+   working directory root.
+2. Upload the ZIP in Studio. A ZIP with an existing template name adds a version.
+3. Create or update a deployment to use the new version. Existing workbenches
+   stay on the version they started with; in a "One Workbench" (Single)
+   deployment, replace the workbench to pick up a new version. Agent-written
+   files such as `feedback/` are not carried over, so export them first.
 
 ## Step 5: Test
 
-1. Start a new ICM session from the template.
-2. Confirm that Claude follows `CLAUDE.md` and runs
-   `.how-to-setup/configure-git.sh` before the first domain stage.
-3. Confirm that Claude runs the declared `git status`, `git remote`, and
-   `git pull --ff-only` verification commands and reports their results.
-4. Confirm that the checkout appears at `ICM_GITHUB_CHECKOUT_DIR` on both a new
-   session and a later session where the checkout already exists.
-5. Run a harmless workflow test that reads expected context and writes only to
-   a temporary or test output location.
+1. Start a chat in a new workbench. Confirm Claude runs
+   `.how-to-setup/configure-git.sh` before replying and reports the checked-out
+   commit.
+2. Start a second chat on the same workbench, or wait for the container to
+   recycle. Confirm the script refreshes the existing `EdubaWareVision/` folder
+   without "already exists and is not an empty directory".
+3. Run a harmless stage 3 test that publishes only to a test branch or test
+   repository.
 
 ## Troubleshooting
 
-- If Git authentication fails: check that the External API Key is ICM Proxy
-  Enabled and scoped to the intended repository.
-- If the remote URL is wrong: verify `EDUBAWARE_EXTERNAL_API_PROXY_URL`, the
-  configured API key name, `ICM_GITHUB_OWNER`, and
-  `ICM_GITHUB_REPOSITORY`.
-- If the PAT expired: generate a new token and update the External API Key
-  secret.
-- If the script reports a missing variable: add the corresponding
-   `ICM_GITHUB_*` export to the umbrella's runtime `CLAUDE.md`.
-- If the agent cannot find context: verify that the workflow's root router and
-  stage contracts use paths relative to `ICM_GITHUB_CHECKOUT_DIR` in the
-  packaged template layout.
+- `404 No external API key named '...'`: the key name is wrong, or the key has
+  no secret.
+- `409` or `403` from the proxy: the session token is only valid during a
+  running turn; rerun the script in the current turn.
+- Authentication failed from GitHub: the PAT expired or cannot access the
+  repository. Update the key's secret.
+- Missing variable: add the `ICM_GITHUB_*` export to the runtime `CLAUDE.md`.
+- Push rejected: the branch moved upstream. Rerun the refresh, reapply the
+  change, and publish again.

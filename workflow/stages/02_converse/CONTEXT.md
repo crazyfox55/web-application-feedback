@@ -28,6 +28,8 @@ recognize as accurate.
 6. After confirmation, create or update the appropriate feedback record:
    `feature-requests/` for a desired capability, `issue-reports/` for observed
    unexpected behavior, or `general/` when neither classification is justified.
+   Name it `NNN-short-slug.md` with the next free number, checked immediately
+   before writing.
 
 Keep quotations or close paraphrases under **User account**. Put agent analysis
 under **Workbench interpretation**. Never rewrite an inference as something the

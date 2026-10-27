@@ -6,6 +6,7 @@ and overwrites output.html with a Workbench HTML report.
 """
 
 import re
+from html import escape
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -47,7 +48,7 @@ def render_html(data):
         count = len(items)
         if items:
             item_list = "".join(
-                f"<li><span class='num'>#{num}</span> {name}</li>"
+                f"<li><span class='num'>#{num}</span> {escape(name)}</li>"
                 for num, name in items
             )
         else:

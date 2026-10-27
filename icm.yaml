@@ -1,3 +1,5 @@
+# Local packaging contract. EdubaWare does not read this file; it loads the
+# zip's root CLAUDE.md and .claude/ (skills, settings) only.
 name: web-application-feedback
 kind: umbrella
 packageRoot: workflow
@@ -8,16 +10,23 @@ requiredPaths:
   - stages/01_orient/CONTEXT.md
   - stages/02_converse/CONTEXT.md
   - stages/03_route/CONTEXT.md
+  - .how-to-setup/configure-git.sh
+  - edubaware/edubaware-integrations.md
+  - edubaware/workbooks.md
+  - .claude/skills/icm-architect/SKILL.md
 
 mutablePaths:
   - feedback/**
   - output.html
+  - EdubaWareVision/**
 
 exclude:
   - "**/.git/**"
   - "**/__pycache__/**"
   - "**/node_modules/**"
 
+# Documentation only. An org admin creates this External API Key with ICM
+# proxy enabled; EdubaWare then grants it to every deployment in the org.
 integrations:
   - type: github
     keyName: github-key1

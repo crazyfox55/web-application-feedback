@@ -22,10 +22,17 @@ confirmed feedback record, then write that approved artifact to the Atlas.
 4. Tell the user the exact artifact you propose to change, or that no Atlas
    change is justified yet, and explain why.
 5. Obtain user approval before changing the Atlas.
-6. Write the final artifact under `../../EdubaWareVision/`. Apply the matching
-   Atlas template or preserve the schema of an existing record. Link the Atlas
+6. In the same turn, rerun the bootstrap from `../../CLAUDE.md`, then write the
+   final artifact under `../../EdubaWareVision/`. Apply the matching Atlas
+   template or preserve the schema of an existing record. Link the Atlas
    artifact to the Workbench feedback record.
-7. Add an **Atlas routing** section to the feedback record with the outcome,
+7. Still in that turn, publish only the approved artifact, with its path
+   relative to the checkout:
+   `bash .how-to-setup/configure-git.sh publish "<message>" <path>`, run from
+   the workspace root in the same Bash command as the bootstrap `export` lines. A later refresh discards
+   unpublished Atlas changes. If publishing fails, report the error and record
+   the status as `needs-validation` with the reason.
+8. Add an **Atlas routing** section to the feedback record with the outcome,
    link, status, and unresolved validation work.
 
 Do not change multiple Atlas artifact types to make the feedback appear more
@@ -33,8 +40,8 @@ complete. Record follow-up work instead.
 
 ## Review Gate
 
-No Atlas mutation occurs until the user has seen and approved the proposed
-artifact choice.
+No Atlas mutation or publish occurs until the user has seen and approved the
+proposed artifact choice.
 
 ## Output
 

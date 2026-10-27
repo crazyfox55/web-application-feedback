@@ -51,9 +51,15 @@ untriaged report as an accepted feature or confirmed bug.
 ## Atlas Checkout
 
 The umbrella expects the Atlas at `EdubaWareVision/` inside its runtime root.
-Host or template setup is responsible for supplying that checkout before a
-feedback session starts. `docs/setup/` describes the integration, while
-`workflow/.how-to-setup/configure-git.sh` performs it at runtime.
+`workflow/.how-to-setup/configure-git.sh` fetches or refreshes it each session
+through the EdubaWare External API proxy and publishes approved artifacts.
+`docs/setup/` describes the one-time admin setup.
+
+## Bundled References
+
+- `workflow/edubaware/`: verified EdubaWare platform notes for the runtime agent.
+- `workflow/.claude/skills/icm-architect/`: the `icm-architect` skill, vendored
+  unmodified (see its `PROVENANCE.md`).
 
 ## Supporting Tools
 
