@@ -19,6 +19,7 @@ mutablePaths:
   - feedback/**
   - output.html
   - EdubaWareVision/**
+  - .icm-git/**
 
 exclude:
   - "**/.git/**"

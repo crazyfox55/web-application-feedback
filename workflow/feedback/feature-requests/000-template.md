@@ -4,7 +4,7 @@
 
 **Date:** YYYY-MM-DD
 
-**Status:** confirmed-feedback
+**Status:** draft
 
 ## User account
 
@@ -43,6 +43,8 @@
 ## Atlas routing
 
 **Outcome:** pending
+
+**Atlas draft:** none
 
 **Atlas artifact:** none
 

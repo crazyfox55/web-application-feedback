@@ -1,16 +1,17 @@
 # Feedback Workbench Umbrella
 
-This umbrella runs across multiple feedback conversations, retaining confirmed
-records between runs and, when warranted, proposing changes to the
-EdubaWareVision Atlas.
+This umbrella runs across multiple feedback conversations, retaining feedback
+records between runs and publishing what it learns to the EdubaWareVision
+Atlas as early as possible.
 
 Read `CONTEXT.md` to route the work. Follow the numbered stage contracts in
-order. Do not skip the user review gates between conversation and promotion.
+order. The only user gate is the stage 2 summary confirmation. Never ask the
+user to approve or confirm a publish: when an Atlas write is due, write it and
+publish it in the same turn.
 
 ## Platform Bootstrap
 
-Fetch or refresh the EdubaWareVision checkout at the start of each chat's first
-turn, and again in the stage 3 turn before writing to the Atlas:
+Fetch or refresh the EdubaWareVision checkout at the start of every turn:
 
 ```bash
 export ICM_GITHUB_OWNER="crazyfox55"
@@ -21,25 +22,42 @@ export ICM_GITHUB_API_KEY_NAME="github-key1"
 bash .how-to-setup/configure-git.sh
 ```
 
-The script is safe to rerun: it never clones into an existing folder, and it
-resets `EdubaWareVision/` to the remote branch. Saved workbench files do not
-keep `.git`, so treat any Atlas file not yet published as temporary.
+The script is safe to rerun. It never clones into an existing folder and
+resets `EdubaWareVision/` to the remote branch, but first it saves any Atlas
+change that was not published (a failed push, or a file written but never
+published) under `.icm-git/`, then reapplies and publishes it. Do not edit or
+delete `.icm-git/`.
 
-Stop and report the failure if the script fails. Do not begin feedback intake
-with missing or stale Atlas context.
+Publish with the same `export` lines in the same Bash command:
+`bash .how-to-setup/configure-git.sh publish "<message>" <path>...`, with
+paths relative to the checkout. A rejected push is rebased and retried; it is
+never forced.
+
+Read the script's output:
+
+- Exit 0 with `ready at` or `Published`: done.
+- `UNPUBLISHED` (publish exit 75): the change is kept and the next bootstrap
+  publishes it. Continue the conversation; do not ask the user to retry.
+  Record the status as `pending-publish` and mention it briefly.
+- `CONFLICT`: someone else changed the same Atlas file. Merge the saved copy
+  it names into the checkout file, keeping both sets of content, and publish
+  it in the same turn.
+- Any other failure of the plain bootstrap: stop and report it. Do not begin
+  feedback intake with missing or stale Atlas context.
 
 ## Boundaries
 
 - `EdubaWareVision/` is the product Atlas. It is a workflow input for product
-  context and the output destination for an approved durable artifact. It is
-  nested in this workspace for access, but it remains a separate repository.
-- `feedback/` stores confirmed user accounts and Workbench interpretations
-  accumulated across umbrella runs. Several chats can share this workbench and
-  run at the same time; re-list a folder immediately before numbering a new
-  record.
-- Durable product knowledge belongs in the Atlas only after the user confirms
-  that the feedback record represents what they meant and approves the proposed
-  artifact choice.
+  context and the output destination for Atlas drafts and durable artifacts.
+  It is nested in this workspace for access, but it remains a separate
+  repository.
+- `EdubaWareVision/features/drafts/` holds rough feature-request estimates
+  published before confirmation or triage. Each draft is labelled as
+  unaccepted. Only stage 3 promotes a draft into `features/open/`.
+- `feedback/` stores user accounts and Workbench interpretations accumulated
+  across umbrella runs. It is never published to the Atlas. Several chats can
+  share this workbench and run at the same time; re-list a folder immediately
+  before numbering a new record.
 - Repository bootstrap is a platform prerequisite executed by the agent before
   the domain stages. It is not itself a feedback stage.
 

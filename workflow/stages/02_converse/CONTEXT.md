@@ -3,13 +3,16 @@
 ## Job
 
 Understand the user's experience well enough to create a feedback record they
-recognize as accurate.
+recognize as accurate. Capture a feature request in the Atlas as a rough draft
+as soon as it is usable, before the conversation is finished.
 
 ## Inputs
 
 - Layer 4 (working): the complete conversation and stage 1 working notes.
 - Layer 3 (reference): templates under `../../feedback/`.
 - Layer 3 (reference): relevant existing records under `../../feedback/`.
+- Layer 3 (reference): `../../EdubaWareVision/templates/feature.md` and
+  existing files under `../../EdubaWareVision/features/drafts/`.
 
 ## Process
 
@@ -23,13 +26,32 @@ recognize as accurate.
 4. Search existing feedback for the same need or observation. Add evidence to a
    related record when that preserves the user's distinct context; otherwise
    prepare a new record.
-5. Summarize the feedback in plain language, including the desired outcome and
+5. Write the feedback record as soon as its classification is clear, with
+   **Status:** `draft`: `feature-requests/` for a desired capability,
+   `issue-reports/` for observed unexpected behavior, or `general/` when
+   neither classification is justified. Name it `NNN-short-slug.md` with the
+   next free number, checked immediately before writing. Update it as the
+   conversation continues.
+6. As soon as a feature request has a recognizable need and desired outcome,
+   even a rough one, publish an Atlas draft in the same turn without asking:
+   write `../../EdubaWareVision/features/drafts/<short-slug>.md` from the Atlas
+   feature template, starting with the draft banner below, then publish that
+   path as described in `../../CLAUDE.md`. Update an existing draft for the
+   same need instead of adding another. Republish whenever the draft improves.
+   Record the draft path under **Atlas draft** in the feedback record.
+7. Summarize the feedback in plain language, including the desired outcome and
    unresolved questions. Ask the user to confirm or correct the summary.
-6. After confirmation, create or update the appropriate feedback record:
-   `feature-requests/` for a desired capability, `issue-reports/` for observed
-   unexpected behavior, or `general/` when neither classification is justified.
-   Name it `NNN-short-slug.md` with the next free number, checked immediately
-   before writing.
+8. After confirmation, set the record's status to `confirmed-feedback`, update
+   any Atlas draft to match and change its banner status to
+   `confirmed-feedback`, and republish it.
+
+Draft banner:
+
+```markdown
+> **Draft: rough estimate, not an accepted feature.** Captured from Workbench
+> feedback before triage. Status: unconfirmed. Source: Workbench record
+> `feedback/feature-requests/NNN-short-slug.md`.
+```
 
 Keep quotations or close paraphrases under **User account**. Put agent analysis
 under **Workbench interpretation**. Never rewrite an inference as something the
@@ -38,10 +60,13 @@ user said.
 ## Review Gate
 
 The user must confirm or correct the summary before the record is finalized and
-before stage 3 begins.
+before stage 3 begins. Drafts do not wait for this gate, and publishing never
+needs a separate confirmation.
 
 ## Output
 
 - One confirmed record under `../../feedback/`, or an evidence update to an
   existing record.
-- The path to that record carried into stage 3.
+- For a feature request, a published draft under
+  `../../EdubaWareVision/features/drafts/`.
+- The paths to both carried into stage 3.

@@ -11,6 +11,7 @@ by the feedback. Feedback is evidence; it is not itself a product decision.
 | Product purpose or enduring direction has deliberately changed | `VISION.md` |
 | Verified system structure or security posture has changed | The relevant file under `architecture/` |
 | An existing Atlas record already covers the conclusion | Update that existing record with new evidence |
+| A feature need is plausible but not yet confirmed or triaged | `features/drafts/` (stage 2 publishes it; it is not a durable record) |
 | The report is unverified, undecided, unclear, declined, or purely evidentiary | No Atlas change; retain the Workbench record |
 
 ## Selection Tests

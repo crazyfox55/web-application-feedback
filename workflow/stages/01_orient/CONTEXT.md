@@ -34,5 +34,5 @@ Atlas documentation proves the user's experience wrong.
 - Working notes retained in conversation context for stage 2.
 - No file changes.
 
-The Atlas is read-only in this stage. Its output role begins only after the
-stage 3 review gate.
+The Atlas is read-only in this stage. Drafts begin in stage 2; durable
+artifacts in stage 3.

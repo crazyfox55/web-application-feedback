@@ -23,16 +23,18 @@ The Workbench follows the ICM contracts under `workflow/stages/`:
 
 1. **Orient:** read core and relevant product knowledge from
   `EdubaWareVision/` before replying to the user.
-2. **Converse:** explore the experience through focused questions, reflect it
-  back, and wait for the user to confirm or correct the summary.
-3. **Route:** decide which Atlas artifact, if any, should change. State that
-  decision and obtain approval before writing the final artifact to the Atlas.
+2. **Converse:** explore the experience through focused questions, publish a
+  labelled rough draft to `EdubaWareVision/features/drafts/` as soon as a
+  usable feature request exists, and ask the user to confirm or correct the
+  summary.
+3. **Route:** decide which Atlas artifact, if any, should change, then write
+  and publish it in the same turn without a second confirmation.
 
-The user conversation is a review gate. It is not replaced by filling out a
-form, and a raw report is not automatically promoted into product knowledge.
+The stage 2 summary confirmation is the only user gate. It is not replaced by
+filling out a form, and a draft is not an accepted feature.
 
 `EdubaWareVision/` therefore has two roles at runtime: it supplies the product
-context used during orientation, and it receives the approved durable artifact
+context used during orientation, and it receives drafts and durable artifacts
 at the end. `workflow/feedback/` is the inspectable intermediate representation
 between those two uses and accumulates feedback across runs of an umbrella
 session.
@@ -52,7 +54,10 @@ untriaged report as an accepted feature or confirmed bug.
 
 The umbrella expects the Atlas at `EdubaWareVision/` inside its runtime root.
 `workflow/.how-to-setup/configure-git.sh` fetches or refreshes it each session
-through the EdubaWare External API proxy and publishes approved artifacts.
+through the EdubaWare External API proxy and publishes drafts and artifacts.
+A failed or rejected push never loses work: unpublished changes are kept in
+`.icm-git/` in the workbench and published by the next run, and pushes are
+rebased and retried, never forced.
 `docs/setup/` describes the one-time admin setup.
 
 ## Bundled References
