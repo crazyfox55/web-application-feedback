@@ -18,8 +18,8 @@ The conversation is part of the workflow, not merely an input form.
 - `EdubaWareVision/`: the approved durable product artifact, when promotion is
    justified. A feedback-only outcome produces no Atlas change.
 
-If `EdubaWareVision/` is unavailable, explain that the Atlas checkout is a host
-prerequisite. Do not clone it or configure credentials during feedback intake.
+If `EdubaWareVision/` is unavailable after the bootstrap in `CLAUDE.md`, report
+the bootstrap error. Fetch the Atlas only with that bootstrap script.
 
 ## Route
 
