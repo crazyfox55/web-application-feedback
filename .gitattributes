@@ -1,0 +1,5 @@
+# Sandbox runs these on Linux; keep LF in every checkout (OmenMax has core.autocrlf=true).
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.png binary
