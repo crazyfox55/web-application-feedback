@@ -4,7 +4,7 @@
 
 **Date:** YYYY-MM-DD
 
-**Status:** confirmed-feedback
+**Status:** draft <!-- draft | validated | promoted <hash> | failed <reason> | duplicate <Atlas path> | declined | feedback-only -->
 
 ## User account
 
@@ -42,10 +42,6 @@
 
 ## Atlas routing
 
-**Outcome:** pending
-
 **Atlas artifact:** none
-
-**Publish result:** none (commit hash, or pending-publish with the failure reason)
 
 **Reason / validation needed:**
