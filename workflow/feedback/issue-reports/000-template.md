@@ -42,8 +42,10 @@
 
 ## Atlas routing
 
-**Outcome:** needs-validation
+**Outcome:** pending
 
 **Atlas artifact:** none
+
+**Publish result:** none (commit hash, or pending-publish with the failure reason)
 
 **Reason / validation needed:**

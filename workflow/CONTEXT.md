@@ -14,9 +14,12 @@ The conversation is part of the workflow, not merely an input form.
 
 ## Workspace Outputs
 
-- `feedback/`: the confirmed conversation record and routing trace.
-- `EdubaWareVision/`: the approved durable product artifact, when promotion is
-   justified. A feedback-only outcome produces no Atlas change.
+- `feedback/`: the conversation record and routing trace.
+- `EdubaWareVision/features/drafts/`: a rough, clearly labelled feature
+  draft, published as soon as a usable rough feature request exists.
+- `EdubaWareVision/features/open/` or `bugs/open/`: the promoted artifact,
+  when a promotion rule in `stages/03_route/references/artifact-routing.md`
+  matches. A feedback-only outcome changes no durable Atlas record.
 
 If `EdubaWareVision/` is unavailable after the bootstrap in `CLAUDE.md`, report
 the bootstrap error. Fetch the Atlas only with that bootstrap script.
@@ -27,12 +30,13 @@ Run these stages in order:
 
 1. `stages/01_orient/CONTEXT.md` - read the smallest useful slice of the Atlas
    before replying to the user.
-2. `stages/02_converse/CONTEXT.md` - explore the experience and confirm a
-   faithful summary with the user.
-3. `stages/03_route/CONTEXT.md` - select and, only when justified and approved,
-   write one primary durable artifact to the Atlas.
+2. `stages/02_converse/CONTEXT.md` - explore the experience, publish an early
+   feature draft when one exists, and confirm a faithful summary with the user.
+3. `stages/03_route/CONTEXT.md` - apply the promotion rules, then write and
+   publish one primary durable artifact to the Atlas.
 
 Do not start stage 3 until the user confirms or corrects the stage 2 summary.
+That confirmation is the only one: never ask the user to approve a publish.
 
 ## Working Rules
 
@@ -41,7 +45,10 @@ Do not start stage 3 until the user confirms or corrects the stage 2 summary.
 - Do not assume a requested implementation is the underlying need.
 - Search existing feedback and Atlas records before creating duplicates.
 - Treat `feedback/` as evidence, not as accepted product direction.
-- State the chosen Atlas artifact and reasoning before changing it.
+- Capture early: publish a rough draft as soon as it is usable, then refine
+  or promote it. Unpublished work can be lost to errors.
+- State the chosen Atlas artifact and reasoning when you publish it, and the
+  publish result, as `CLAUDE.md` **Reporting** requires.
 - Link any Atlas change back to the Workbench feedback record.
-- A feedback-only outcome is valid when evidence is incomplete, behavior is
-  unverified, or no product decision has been made.
+- Missing evidence does not block promotion; it adds a needs-validation
+  banner. A feedback-only outcome means no promotion rule matched.

@@ -4,7 +4,7 @@
 
 **Date:** YYYY-MM-DD
 
-**Status:** confirmed-feedback
+**Status:** draft
 
 ## User account
 
@@ -44,6 +44,10 @@
 
 **Outcome:** pending
 
+**Atlas draft:** none
+
 **Atlas artifact:** none
+
+**Publish result:** none (commit hash, or pending-publish with the failure reason)
 
 **Reason / validation needed:**

@@ -2,52 +2,71 @@
 
 ## Job
 
-Decide which single durable Atlas artifact, if any, should change because of the
-confirmed feedback record, then write that approved artifact to the Atlas.
+Apply the promotion rules in `references/artifact-routing.md` to the
+confirmed feedback record, then write and publish the selected Atlas artifact
+in the same turn.
 
 ## Inputs
 
-- Layer 4 (working): the confirmed feedback record from stage 2.
+- Layer 4 (working): the confirmed feedback record and any Atlas draft from
+  stage 2.
 - Layer 3 (reference): `references/artifact-routing.md`.
 - Layer 3 (reference): `../../EdubaWareVision/CONTEXT.md`.
 - Layer 3 (reference): Atlas templates and relevant existing Atlas records.
 
 ## Process
 
-1. Verify the feedback against relevant Atlas vision, architecture, features,
-   bugs, and rationale. Do not equate user confirmation with product acceptance
-   or technical verification.
-2. Use `references/artifact-routing.md` to select one primary outcome.
-3. Prefer updating an existing Atlas artifact over creating a duplicate.
-4. Tell the user the exact artifact you propose to change, or that no Atlas
-   change is justified yet, and explain why.
-5. Obtain user approval before changing the Atlas.
-6. In the same turn, rerun the bootstrap from `../../CLAUDE.md`, then write the
-   final artifact under `../../EdubaWareVision/`. Apply the matching Atlas
-   template or preserve the schema of an existing record. Link the Atlas
-   artifact to the Workbench feedback record.
-7. Still in that turn, publish only the approved artifact, with its path
-   relative to the checkout:
-   `bash .how-to-setup/configure-git.sh publish "<message>" <path>`, run from
-   the workspace root in the same Bash command as the bootstrap `export` lines. A later refresh discards
-   unpublished Atlas changes. If publishing fails, report the error and record
-   the status as `needs-validation` with the reason.
-8. Add an **Atlas routing** section to the feedback record with the outcome,
-   link, status, and unresolved validation work.
+1. Check the feedback against relevant Atlas vision, architecture, features,
+   bugs, and rationale, and look for an existing record that owns it.
+2. Select the outcome with the promotion rules in
+   `references/artifact-routing.md`. They decide; do not offer the user a
+   choice or defer the decision.
+3. Write the artifact under `../../EdubaWareVision/` in this turn. Apply the
+   matching Atlas template or preserve the schema of an existing record. Name
+   its source with the workbench URL and record file name as plain text, as
+   `../../CLAUDE.md` **Source Reference in Atlas Files** requires; never a
+   relative link to `feedback/`, and never copy the record into the Atlas.
+   To promote a feature draft, move it from `features/drafts/` to
+   `features/open/` and replace the draft banner; to promote an issue, write `bugs/open/<short-slug>.md` from
+   `templates/bug.md`. Start a promoted artifact with the needs-validation
+   banner unless its behavior or need is already verified or accepted. When no
+   promotion rule matches, set the draft banner status to the outcome.
+4. Publish immediately, without asking: run
+   `bash .how-to-setup/configure-git.sh publish "<message>" <path>...` from
+   the workspace root in the same Bash command as the bootstrap `export`
+   lines. Include both paths of a move.
+5. Report as `../../CLAUDE.md` requires: what was promoted and why, or which
+   promotion criterion is missing; then the Workbench/Atlas block with the
+   commit hash or the `FAILED` reason.
+6. Add an **Atlas routing** section to the feedback record with the outcome,
+   Atlas path, commit hash or `pending-publish`, and validation still needed.
+
+Needs-validation banner:
+
+```markdown
+> **Needs validation.** Promoted from Workbench feedback on YYYY-MM-DD
+> (Workbench https://chat.eduba.io/workbenches/<workbench-id>/chats, record
+> `feedback/<folder>/NNN-short-slug.md`). Not yet verified:
+> <what is missing, e.g. logs, team reproduction, product decision>.
+```
+
+Write the **Source feedback** line under the summary in the same plain-text
+form, replacing any relative `../feedback/` link carried over from a draft.
 
 Do not change multiple Atlas artifact types to make the feedback appear more
 complete. Record follow-up work instead.
 
-## Review Gate
+## No Publish Gate
 
-No Atlas mutation or publish occurs until the user has seen and approved the
-proposed artifact choice.
+Stage 3 has no approval step. The stage 2 confirmation is the user's review;
+do not ask for a second confirmation before writing or publishing.
 
 ## Output
 
 One of:
 
-- one new or updated final artifact in `../../EdubaWareVision/` plus a backlink
-   from the feedback record;
-- an updated feedback record marked `feedback-only`, `needs-validation`,
-  `duplicate`, or `declined`, with no Atlas mutation.
+- one new, promoted, or updated artifact in `../../EdubaWareVision/` plus a
+  backlink from the feedback record;
+- an updated feedback record marked `feedback-only`, `duplicate`, or
+  `declined`, with no durable Atlas change beyond updating the status of its
+  draft.

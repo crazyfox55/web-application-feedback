@@ -11,7 +11,8 @@ instructions.
 - Keep completed development and test feedback under `records/`; do not package
   it into new ICM versions.
 - Keep human setup documentation and screenshots under `docs/`.
-- Preserve the user review gates in the numbered stage contracts.
+- Preserve the stage 2 summary confirmation. Publishing to the Atlas has no
+  approval gate (owner decision, 2026-10-26); do not reintroduce one.
 - Keep `workflow/.how-to-setup/configure-git.sh` aligned with the Eduba platform
   integration contract.
 - Keep `icm.yaml` synchronized with the package layout. EdubaWare does not read

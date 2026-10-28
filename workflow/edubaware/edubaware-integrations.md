@@ -35,6 +35,8 @@ Everything here works for any template author or operator without API keys, MCP 
 ## 2. What the agent can do in the container
 
 - **Working directory:** the workspace root. All chats on one workbench share it.
+- **Which workbench am I?** The workbench id (the platform calls it the session id) is in `.platform/session.json` as `sessionId`, and the working directory itself is named after it. The chat id is not given to the agent, and no environment variable carries either. `session.json` also holds a session token and storage URLs, so read only the field you need. `platform.apiBaseUrl` there is the API host (`https://api.eduba.io`), not the web app; the web app's address (`https://chat.eduba.io`) is not available inside the container.
+- **Links to a workbench:** `https://chat.eduba.io/workbenches/<workbench id>/chats` lists its chats. `/nova/w/<id>` takes a *chat* id, not a workbench id.
 - **Tools:** Read, Write, Edit, MultiEdit, Glob, Grep, LS, NotebookRead, NotebookEdit, Bash, WebFetch, WebSearch, Skill. Sub-agents (Agent/Task), Workflow, Cron, Monitor and messaging tools are switched off.
 - **Per turn:** at most **100 agent steps** by default, and the chat reply is cut at **12,000 characters**. Put long results in files.
 - **Software:** Python 3.12, Node 22 (pnpm, yarn), git, gh, curl, wget, rsync, tar, zip/unzip/7z, jq, yq, ripgrep, fd, uv. Playwright Chromium is installed without its system libraries, so it may not launch **(unverified)**. **No** pandas, openpyxl, python-pptx or LibreOffice. Anything installed during a session is lost when the container recycles. Plan for Python's standard library.
