@@ -287,7 +287,7 @@ verify_push() {
   head="$(g rev-parse HEAD)"
   remote="$(git_remote -C "${ICM_GITHUB_CHECKOUT_DIR}" ls-remote origin "refs/heads/${ICM_GITHUB_BRANCH}" | cut -f1)" || true
   if [ -n "${remote}" ] && { [ "${remote}" = "${head}" ] || {
-    remote_git -C "${ICM_GITHUB_CHECKOUT_DIR}" fetch --quiet origin "${ICM_GITHUB_BRANCH}" &&
+    remote_git -C "${ICM_GITHUB_CHECKOUT_DIR}" fetch --quiet --refmap= origin "${ICM_GITHUB_BRANCH}" &&
       g merge-base --is-ancestor "${head}" "${remote}"; }; }; then
     echo "VERIFIED: ${head} on origin/${ICM_GITHUB_BRANCH}"
     return 0
@@ -353,6 +353,9 @@ replay_pending() {
     wanted=-
     [ "${op}" = del ] || wanted="$(pending_blob "${path}")"
     if [ "${current}" = "${wanted}" ]; then
+      # A push whose verification failed may already have landed; the fresh
+      # clone's HEAD is the remote branch, so this confirms it.
+      echo "VERIFIED: $(g rev-parse HEAD) on origin/${ICM_GITHUB_BRANCH} (already published: ${path})"
       drop_pending "${path}"
     elif [ "${current}" = "${base}" ]; then
       if [ "${op}" = put ]; then
@@ -492,7 +495,8 @@ publish_checkout() {
     printf '%s\n' "${message}" >>"${STATE}/messages"
   elif [ -z "$(g rev-list "refs/remotes/origin/${ICM_GITHUB_BRANCH}..HEAD")" ]; then
     echo "Nothing to publish."
-    return 0
+    verify_push || raise_status "${EXIT_UNPUBLISHED}"
+    exit_with_status
   fi
 
   local code=0
@@ -518,11 +522,12 @@ check_slug() {
   fi
   slug="$(basename "$1" .md)"
   g remote set-url origin "${REPOSITORY_REMOTE}"
-  if ! remote_git -C "${ICM_GITHUB_CHECKOUT_DIR}" fetch --quiet origin "${ICM_GITHUB_BRANCH}"; then
+  # --refmap= leaves origin/<branch> and the synced baseline untouched; read FETCH_HEAD.
+  if ! remote_git -C "${ICM_GITHUB_CHECKOUT_DIR}" fetch --quiet --refmap= origin "${ICM_GITHUB_BRANCH}"; then
     echo "FAILED: could not fetch ${ICM_GITHUB_OWNER}/${ICM_GITHUB_REPOSITORY}@${ICM_GITHUB_BRANCH}; git's error is printed above." >&2
     exit 1
   fi
-  found="$(g ls-tree --full-tree --name-only "refs/remotes/origin/${ICM_GITHUB_BRANCH}" -- \
+  found="$(g ls-tree --full-tree --name-only FETCH_HEAD -- \
     "bugs/open/${slug}.md" "features/open/${slug}.md" "features/drafts/${slug}.md")"
   if [ -n "${found}" ]; then
     sed 's/^/EXISTS /' <<<"${found}"
