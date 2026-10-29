@@ -3,6 +3,7 @@
 #
 #   bash .how-to-setup/configure-git.sh                          # fetch or refresh
 #   bash .how-to-setup/configure-git.sh publish "<message>" <path>...  # commit and push
+#   bash .how-to-setup/configure-git.sh check-slug <path>        # EXISTS <path> or NEW on the remote
 #
 # Why it works this way (checked against EdubaWare master 369354dd):
 # - Workbench files persist between turns, but `.git` directories never do
@@ -20,6 +21,10 @@
 #   reported as a conflict. With no record yet (the first run after a
 #   template whose refresh kept no state), a file the remote never had is
 #   published, and any other difference is kept aside under `recovered/`.
+#   Before any reset, every changed or untracked file and a binary patch are
+#   also copied to `backups/<timestamp>/` (newest 10 kept; printed as BACKUP).
+# - A successful push is confirmed with `ls-remote` (printed as VERIFIED); a
+#   push the remote does not show is treated as UNPUBLISHED.
 # - A rejected push is fetched, rebased, and retried. It is never forced. An
 #   authorization failure (for example GitHub's 403 "Write access to repository
 #   not granted") is not retried. Either way the commit's files are saved to
@@ -171,6 +176,27 @@ clear_pending_if_empty() {
   fi
 }
 
+# Copies every file the reset or clean would change, plus a binary patch of
+# tracked changes, to a timestamped folder outside the checkout.
+backup_checkout() {
+  local changed dir path old
+  changed="$( { g diff --name-only --no-renames HEAD; g ls-files --others --exclude-standard; } | sort -u)"
+  [ -n "${changed}" ] || return 0
+  dir="${STATE}/backups/$(date -u +%Y%m%dT%H%M%SZ)-$$"
+  mkdir -p "${dir}/files"
+  g diff --binary --no-renames HEAD >"${dir}/tracked.patch"
+  printf '%s\n' "${changed}" >"${dir}/paths"
+  while IFS= read -r path; do
+    [ -f "${ICM_GITHUB_CHECKOUT_DIR}/${path}" ] || continue
+    mkdir -p "$(dirname "${dir}/files/${path}")"
+    cp -p "${ICM_GITHUB_CHECKOUT_DIR}/${path}" "${dir}/files/${path}"
+  done <<<"${changed}"
+  echo "BACKUP: ${dir}"
+  while IFS= read -r old; do
+    rm -rf "${old}"
+  done < <(ls -1d "${STATE}/backups"/*/ | sort -r | tail -n +11)
+}
+
 # Runs with the fresh `.git` in place but before the reset: every file that
 # differs from the remote is either a local change (it also differs from the
 # synced record) or a stale copy of a file someone else changed.
@@ -252,6 +278,22 @@ push_with_retry() {
     record_synced "${PUSHED_FROM}"
   done
   record_write_access ok
+  verify_push
+}
+
+# Confirms the remote branch is HEAD or already contains it.
+verify_push() {
+  local head remote
+  head="$(g rev-parse HEAD)"
+  remote="$(git_remote -C "${ICM_GITHUB_CHECKOUT_DIR}" ls-remote origin "refs/heads/${ICM_GITHUB_BRANCH}" | cut -f1)" || true
+  if [ -n "${remote}" ] && { [ "${remote}" = "${head}" ] || {
+    remote_git -C "${ICM_GITHUB_CHECKOUT_DIR}" fetch --quiet --refmap= origin "${ICM_GITHUB_BRANCH}" &&
+      g merge-base --is-ancestor "${head}" "${remote}"; }; }; then
+    echo "VERIFIED: ${head} on origin/${ICM_GITHUB_BRANCH}"
+    return 0
+  fi
+  echo "UNVERIFIED: origin/${ICM_GITHUB_BRANCH} is '${remote:-unreadable}', which does not contain ${head}." >&2
+  return "${EXIT_UNPUBLISHED}"
 }
 
 # After a failed push: saves the unpushed files to pending, where they survive
@@ -311,6 +353,9 @@ replay_pending() {
     wanted=-
     [ "${op}" = del ] || wanted="$(pending_blob "${path}")"
     if [ "${current}" = "${wanted}" ]; then
+      # A push whose verification failed may already have landed; the fresh
+      # clone's HEAD is the remote branch, so this confirms it.
+      echo "VERIFIED: $(g rev-parse HEAD) on origin/${ICM_GITHUB_BRANCH} (already published: ${path})"
       drop_pending "${path}"
     elif [ "${current}" = "${base}" ]; then
       if [ "${op}" = put ]; then
@@ -382,6 +427,7 @@ sync_checkout() {
   if [ -d "${ICM_GITHUB_CHECKOUT_DIR}" ] && [ -n "$(ls -A "${ICM_GITHUB_CHECKOUT_DIR}")" ]; then
     rm -rf "${ICM_GITHUB_CHECKOUT_DIR}/.git"
     mv "${tmp}/repo/.git" "${ICM_GITHUB_CHECKOUT_DIR}/.git"
+    backup_checkout
     # A marker left by an interrupted reset means the files may already be
     # partly reset; the pending copy saved before it is authoritative.
     if [ ! -e "${STATE}/refreshing" ]; then
@@ -449,7 +495,8 @@ publish_checkout() {
     printf '%s\n' "${message}" >>"${STATE}/messages"
   elif [ -z "$(g rev-list "refs/remotes/origin/${ICM_GITHUB_BRANCH}..HEAD")" ]; then
     echo "Nothing to publish."
-    return 0
+    verify_push || raise_status "${EXIT_UNPUBLISHED}"
+    exit_with_status
   fi
 
   local code=0
@@ -465,9 +512,34 @@ publish_checkout() {
   exit_with_status
 }
 
+# Prints EXISTS <path> for each record with the same slug on the remote branch
+# in bugs/open, features/open, or features/drafts, or NEW if there is none.
+check_slug() {
+  local slug found
+  if [ -z "${1:-}" ] || [ ! -d "${ICM_GITHUB_CHECKOUT_DIR}/.git" ]; then
+    echo "Usage: configure-git.sh check-slug <path>, after the sync in this turn." >&2
+    exit 2
+  fi
+  slug="$(basename "$1" .md)"
+  g remote set-url origin "${REPOSITORY_REMOTE}"
+  # --refmap= leaves origin/<branch> and the synced baseline untouched; read FETCH_HEAD.
+  if ! remote_git -C "${ICM_GITHUB_CHECKOUT_DIR}" fetch --quiet --refmap= origin "${ICM_GITHUB_BRANCH}"; then
+    echo "FAILED: could not fetch ${ICM_GITHUB_OWNER}/${ICM_GITHUB_REPOSITORY}@${ICM_GITHUB_BRANCH}; git's error is printed above." >&2
+    exit 1
+  fi
+  found="$(g ls-tree --full-tree --name-only FETCH_HEAD -- \
+    "bugs/open/${slug}.md" "features/open/${slug}.md" "features/drafts/${slug}.md")"
+  if [ -n "${found}" ]; then
+    sed 's/^/EXISTS /' <<<"${found}"
+  else
+    echo NEW
+  fi
+}
+
 lock_checkout
 case "${1:-sync}" in
   sync) sync_checkout ;;
   publish) shift; publish_checkout "$@" ;;
-  *) echo "Unknown command: $1 (expected sync or publish)" >&2; exit 2 ;;
+  check-slug) check_slug "${2:-}" ;;
+  *) echo "Unknown command: $1 (expected sync, publish, or check-slug)" >&2; exit 2 ;;
 esac

@@ -28,7 +28,11 @@ in the same turn.
    relative link to `feedback/`, and never copy the record into the Atlas.
    To promote a feature draft, move it from `features/drafts/` to
    `features/open/` and replace the draft banner; to promote an issue, write `bugs/open/<short-slug>.md` from
-   `templates/bug.md`. Start a promoted artifact with the needs-validation
+   `templates/bug.md`. Before writing either, run
+   `bash .how-to-setup/configure-git.sh check-slug <path>` with the bootstrap
+   `export` lines; if it prints `EXISTS bugs/open/...` or
+   `EXISTS features/open/...`, update that file instead of creating another
+   (an `EXISTS features/drafts/...` line is the draft to move). Start a promoted artifact with the needs-validation
    banner unless its behavior or need is already verified or accepted. When no
    promotion rule matches, set the draft banner status to the outcome.
 4. Publish immediately, without asking: run
@@ -37,9 +41,11 @@ in the same turn.
    lines. Include both paths of a move.
 5. Report as `../../CLAUDE.md` requires: what was promoted and why, or which
    promotion criterion is missing; then the Workbench/Atlas block with the
-   commit hash or the `FAILED` reason.
-6. Add an **Atlas routing** section to the feedback record with the outcome,
-   Atlas path, commit hash or `pending-publish`, and validation still needed.
+   `VERIFIED` hash or the `FAILED` reason.
+6. Set the feedback record's **Status:** to `promoted <hash>` (the `VERIFIED`
+   hash), `duplicate <Atlas path>`, `declined`, `feedback-only`, or
+   `failed <reason>` after exit 75-77, and fill its **Atlas routing** section
+   with the Atlas path and validation still needed.
 
 Needs-validation banner:
 
@@ -67,6 +73,6 @@ One of:
 
 - one new, promoted, or updated artifact in `../../EdubaWareVision/` plus a
   backlink from the feedback record;
-- an updated feedback record marked `feedback-only`, `duplicate`, or
-  `declined`, with no durable Atlas change beyond updating the status of its
+- an updated feedback record with **Status:** `feedback-only`, `duplicate`,
+  or `declined`, with no durable Atlas change beyond updating the status of its
   draft.

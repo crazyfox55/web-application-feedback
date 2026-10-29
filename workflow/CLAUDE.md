@@ -39,8 +39,10 @@ Run both commands exactly as shown. Never pipe or filter their output
 and quote the full error to the user when one occurs. Each run ends with a
 `STATUS:` line; act on its exit code:
 
-- `0`: done. `Published` lists the commit hash and files.
-- `75` FAILED UNPUBLISHED: a transient push failure. The files are saved
+- `0`: done. `Published` lists the commit hash and files, and
+  `VERIFIED: <hash>` confirms the remote has it. `BACKUP: <path>` names
+  where the refresh copied local files before resetting them.
+- `75` FAILED UNPUBLISHED: a transient or unverified push. The files are saved
   under `.icm-git/` and the next bootstrap retries them.
 - `76` CONFLICT: a saved change was not applied because the remote file also
   changed. Merge the saved copy it names into the checkout file, keeping both
@@ -56,8 +58,9 @@ and quote the full error to the user when one occurs. Each run ends with a
 
 After 75 or 77, never describe the change as published or done. Tell the
 user `FAILED`, the reason and exact error, the unpushed commit hash, the
-files, and that the next turn's bootstrap retries them automatically. Record
-the publish result as `pending-publish` in the feedback record.
+files, and that the next turn's bootstrap retries them automatically. Set
+the feedback record's **Status:** to `failed <reason>` until a later run
+prints `VERIFIED`.
 
 ## Reporting
 
@@ -75,9 +78,13 @@ publishes anything, end the reply with:
 
 ```text
 Workbench records (stay here): feedback/feature-requests/004-slug.md (draft)
-Atlas entries (EdubaWareVision): features/drafts/slug.md (folder features/drafts) - published abc1234
+Atlas entries (EdubaWareVision): features/drafts/slug.md (folder features/drafts) - published, verified abc1234
                                  bugs/open/slug.md (folder bugs/open) - FAILED NO_WRITE_ACCESS (key github-key1), unpushed def5678, retried next turn
+Backup: .icm-git/EdubaWareVision/backups/20261028T120000Z-123
 ```
+
+Give the `VERIFIED` hash, and add the `Backup:` line only when the output
+printed `BACKUP:`.
 
 State what happened. Do not hedge ("no Atlas change for now", "tell me if
 you'd rather promote"); the stage rules decide, and the reply reports.
